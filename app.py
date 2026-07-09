@@ -165,6 +165,7 @@ def render_model_tab(model_name: str, info: dict) -> None:
                         f"training.{key}", float(updated["training"][key]) * 0.5 if isinstance(updated["training"][key], float) else 1,
                         float(updated["training"][key]) * 2 if isinstance(updated["training"][key], float) else 100,
                         float(updated["training"][key]) if isinstance(updated["training"][key], float) else int(updated["training"][key]),
+                        key=f"slider_{model_name}_{key}"
                     )
         st.write("Modified config preview:", updated)
 
@@ -176,7 +177,7 @@ def render_model_tab(model_name: str, info: dict) -> None:
 
     row = df[(df["country"] == selected_country) & (df["year"] == year)]
     if not row.empty:
-        st.dataframe(row.T, use_container_width=True)
+        st.dataframe(row.astype(str).T, use_container_width=True)
         missing_pct = row.isna().mean().mean() * 100
         st.metric("Missing rate (this row)", f"{missing_pct:.1f}%")
 
