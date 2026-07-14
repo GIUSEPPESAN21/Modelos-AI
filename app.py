@@ -203,6 +203,58 @@ def render_model_tab(model_name: str, info: dict) -> None:
                     st.success("cGAN ready for counterfactual generation after training.")
                 else:
                     st.success(f"{model_name} pipeline ready.")
+                    
+                # Render Uncertainty Bands
+                mc_data = load_metrics(folder, "mc_inference.json")
+                if mc_data and "p50" in mc_data:
+                    st.subheader("Model Uncertainty: 95% Confidence Interval")
+                    
+                    # Ensure they are 1D arrays
+                    p50 = np.array(mc_data["p50"]).flatten()
+                    p2_5 = np.array(mc_data["p2_5"]).flatten()
+                    p97_5 = np.array(mc_data["p97_5"]).flatten()
+                    
+                    # For visualization, we'll just plot the first 20 points (e.g. over time or samples)
+                    # If this is time series, we plot indices.
+                    n_points = min(20, len(p50))
+                    x_axis = np.arange(n_points)
+                    
+                    fig = go.Figure()
+                    # 97.5% percentile
+                    fig.add_trace(go.Scatter(
+                        x=x_axis, y=p97_5[:n_points],
+                        mode='lines',
+                        line=dict(width=0),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
+                    # 2.5% percentile with fill='tonexty' to shade area
+                    fig.add_trace(go.Scatter(
+                        x=x_axis, y=p2_5[:n_points],
+                        mode='lines',
+                        fill='tonexty',
+                        fillcolor='rgba(0, 100, 255, 0.2)',
+                        line=dict(width=0),
+                        name='Intervalo de confianza 95% (Incertidumbre del Modelo)'
+                    ))
+                    # Median line
+                    fig.add_trace(go.Scatter(
+                        x=x_axis, y=p50[:n_points],
+                        mode='lines+markers',
+                        line=dict(color='blue', width=2),
+                        name='Mediana (Predicción)'
+                    ))
+                    
+                    fig.update_layout(
+                        title=f"{model_name} Predictions with Uncertainty Bands",
+                        xaxis_title="Sample / Time",
+                        yaxis_title="Predicted Value",
+                        hovermode="x unified"
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                elif model_name in ["VAE", "Attention LSTM"]:
+                    st.info("Run evaluation first to generate mc_inference.json for uncertainty bands.")
+                    
             except Exception as e:
                 st.error(f"Error: {e}")
 
