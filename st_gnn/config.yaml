@@ -1,0 +1,18 @@
+seed: 42
+
+data:
+  test_ratio: 0.15
+
+model:
+  hidden_dim: 32
+  gcn_layers: 2
+  dropout: 0.2
+
+training:
+  epochs: 40
+  learning_rate: 0.005
+
+paths:
+  model_dir: results/trained_models
+  metrics_dir: results/metrics
+  viz_dir: results/visualizations
