@@ -249,8 +249,8 @@ def render_overview_tab(data: pd.DataFrame, lang: str) -> None:
     with col1:
         st.metric(t("overview_total_vars"), len(data.columns))
     with col2:
-        imputed_pct = (data.isnull().sum().sum() / (len(data) * len(data.columns))) * 100
-        st.metric(t("overview_imputed"), f"{imputed_pct:.1f}%")
+        missing_pct = (data.isnull().sum().sum() / (len(data) * len(data.columns))) * 100
+        st.metric("Missing Data (%)", f"{missing_pct:.1f}%")
     
     # Load DML ATE
     dml_metrics = load_metrics("dml", "eval_metrics.json")
@@ -457,8 +457,14 @@ def render_validation_tab(data: pd.DataFrame) -> None:
     
     # Residuals plot (simulated)
     st.subheader(t("validation_residuals"))
+    st.warning(
+        "🔴 **SIMULATED DATA (pending real implementation)**\n\n"
+        "The residual distribution below is synthetic (np.random.normal). "
+        "Real residuals require exporting from LinearDML.fit() model internals. "
+        "For now, this is a placeholder visualization."
+    )
     residuals = np.random.normal(0, 1, 1000)
-    fig = px.histogram(residuals, nbins=30, title="DML Residual Distribution")
+    fig = px.histogram(residuals, nbins=30, title="DML Residual Distribution (SIMULATED)")
     st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("---")
@@ -466,6 +472,11 @@ def render_validation_tab(data: pd.DataFrame) -> None:
     # Cross-fit diagnostics
     st.subheader("Cross-Fit Diagnostics")
     st.write("5-fold cross-fitting used for robust ATE estimation.")
+    st.warning(
+        "🔴 **SIMULATED DATA (pending real implementation)**\n\n"
+        "The fold-wise ATE estimates below are synthetic. "
+        "Real fold results require exporting from cross-fitting loops in LinearDML.fit()."
+    )
     fold_results = pd.DataFrame({
         "Fold": [1, 2, 3, 4, 5],
         "ATE": np.random.normal(dml_metrics.get("train_ate", 0), 0.05, 5),
