@@ -123,7 +123,7 @@ def load_graph_data(config: dict) -> dict:
         "train_mask": train_mask,
         "test_mask": test_mask,
         "countries": countries,
-        "in_features": len(feature_cols),
+        "in_features": x_seq.shape[-1],  # Use actual tensor dimension, not original feature count
         "graph_stats": graph_stats,
         "scaler": scaler,
     }
