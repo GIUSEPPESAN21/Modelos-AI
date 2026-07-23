@@ -26,8 +26,10 @@ def prepare_dml_data(
     Prepare Y, D, X arrays for DML estimation.
 
     Drops rows with missing outcome; median-imputes covariates.
+    Excludes outcome column from covariates to prevent data leakage.
     """
     covariate_cols = covariate_cols or get_feature_columns()
+    covariate_cols = [c for c in covariate_cols if c != outcome_col]
     sub = df[[treatment_col, outcome_col] + covariate_cols].copy()
     sub = sub.dropna(subset=[outcome_col, treatment_col])
 

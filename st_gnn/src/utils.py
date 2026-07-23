@@ -40,17 +40,25 @@ def build_spatiotemporal_tensor(
     fit_scaler: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor, StandardScaler]:
     """
-    Build (T, N, F) tensor and (N,) target vector (latest year life expectancy).
-
-    Returns x_seq, targets, scaler.
+    Build (T, N, F) tensor and (N,) target vector.
+    
+    Excludes life_expectancy from feature_cols to prevent data leakage.
+    Uses years 2000-2020 for input tensor; 2023 for targets.
     """
+    # Exclude life_expectancy from features to prevent data leakage
+    feature_cols = [c for c in feature_cols if c != "life_expectancy"]
+    
+    # Split years: input uses 2000-2020, target uses 2023
+    input_years = [y for y in years if y <= 2020]
+    target_year = 2023 if 2023 in years else years[-1]
+    
     n = len(countries)
     f = len(feature_cols)
-    t = len(years)
+    t = len(input_years)
     arr = np.zeros((t, n, f), dtype=np.float32)
     targets = np.full(n, np.nan, dtype=np.float32)
 
-    for yi, year in enumerate(years):
+    for yi, year in enumerate(input_years):
         ydf = df[df["year"] == year].set_index("country")
         for ci, country in enumerate(countries):
             if country in ydf.index:
@@ -58,8 +66,12 @@ def build_spatiotemporal_tensor(
                 med = np.nanmedian(vals)
                 vals = np.where(np.isnan(vals), med, vals)
                 arr[yi, ci] = vals
-                if year == years[-1] and "life_expectancy" in ydf.columns:
-                    targets[ci] = ydf.loc[country, "life_expectancy"]
+    
+    # Target from the latest year (2023 if available)
+    tgt_df = df[df["year"] == target_year].set_index("country")
+    for ci, country in enumerate(countries):
+        if country in tgt_df.index and "life_expectancy" in tgt_df.columns:
+            targets[ci] = tgt_df.loc[country, "life_expectancy"]
 
     flat = arr.reshape(-1, f)
     if fit_scaler:

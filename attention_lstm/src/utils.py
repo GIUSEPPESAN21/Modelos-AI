@@ -55,14 +55,24 @@ def build_country_sequences(
     scaler: StandardScaler | None = None,
     fit_scaler: bool = False,
 ) -> tuple[list[np.ndarray], list[float], list[int], StandardScaler]:
-    """Build per-country sequences sorted by year."""
+    """
+    Build per-country sequences sorted by year.
+    
+    Excludes target_col from feature_cols to prevent data leakage.
+    Trims sequences to years 2000-2020 for input; target uses 2021-2023.
+    """
+    # Exclude target column from features
+    feature_cols = [c for c in feature_cols if c != target_col]
+    
     sequences, targets, lengths = [], [], []
     grouped = df.groupby("country")
 
     all_rows = []
     for _, gdf in grouped:
         gdf = gdf.sort_values("year")
-        feats = gdf[feature_cols].values.astype(np.float32)
+        # Use only years 2000-2020 for input features
+        gdf_input = gdf[gdf["year"] <= 2020]
+        feats = gdf_input[feature_cols].values.astype(np.float32)
         medians = np.nanmedian(feats, axis=0)
         inds = np.where(np.isnan(feats))
         feats_f = feats.copy()
@@ -77,18 +87,22 @@ def build_country_sequences(
     assert scaler is not None
     for country, gdf in grouped:
         gdf = gdf.sort_values("year")
-        feats = gdf[feature_cols].values.astype(np.float32)
+        # Use only years 2000-2020 for input features
+        gdf_input = gdf[gdf["year"] <= 2020]
+        feats = gdf_input[feature_cols].values.astype(np.float32)
         medians = np.nanmedian(feats, axis=0)
         inds = np.where(np.isnan(feats))
         feats_f = feats.copy()
         feats_f[inds] = np.take(medians, inds[1])
         scaled = scaler.transform(feats_f)
-        tgt = gdf[target_col].values.astype(np.float32)
+        # Target uses 2021-2023 (years after input)
+        gdf_target = gdf[gdf["year"] >= 2021]
+        tgt = gdf_target[target_col].values.astype(np.float32)
         valid_tgt = tgt[~np.isnan(tgt)]
-        if len(valid_tgt) < 3:
+        if len(valid_tgt) < 1:
             continue
         sequences.append(scaled.astype(np.float32))
-        targets.append(float(np.mean(valid_tgt[-3:])))
+        targets.append(float(np.mean(valid_tgt)))
         lengths.append(len(scaled))
 
     return sequences, targets, lengths, scaler
